@@ -91,6 +91,63 @@ public class Emulator {
         }
     }
     
+    public init(codableEmulator: CodableEmulator) {
+        emulator = chip_8()
+        
+        withUnsafeMutablePointer(to: &emulator) { emulator_ptr in
+            ch_initialize(emulator_ptr)
+            
+            codableEmulator.memory.withUnsafeBytes { mem_ptr in
+                ch_loadMemory(emulator_ptr, mem_ptr.baseAddress, codableEmulator.memory.count)
+            }
+        }
+        
+        
+        withUnsafeMutablePointer(to: &emulator.registers) { reg_ptr in
+            reg_ptr.withMemoryRebound(to: UInt8.self, capacity: codableEmulator.registers.count) { dest_reg_array_ptr in
+                codableEmulator.registers.withUnsafeBufferPointer { saved_reg_array_ptr in
+                    memcpy(dest_reg_array_ptr, saved_reg_array_ptr.baseAddress, codableEmulator.registers.count)
+                }
+            }
+        }
+        
+        withUnsafeMutablePointer(to: &emulator.keypad) { keypad_ptr in
+            keypad_ptr.withMemoryRebound(to: UInt8.self, capacity: codableEmulator.keypad.count) { dest_key_array_ptr in
+                codableEmulator.keypad.withUnsafeBufferPointer { saved_key_array_ptr in
+                    memcpy(dest_key_array_ptr, saved_key_array_ptr.baseAddress, codableEmulator.keypad.count)
+                }
+            }
+        }
+        
+        withUnsafeMutablePointer(to: &emulator.stack) { stack_ptr in
+            stack_ptr.withMemoryRebound(to: UInt16.self, capacity: codableEmulator.stack.count) { dest_stack_array_ptr in
+                codableEmulator.stack.withUnsafeBufferPointer { saved_stack_array_ptr in
+                    memcpy(dest_stack_array_ptr, saved_stack_array_ptr.baseAddress, codableEmulator.stack.count*MemoryLayout<UInt16>.size)
+                }
+            }
+        }
+        
+        let flattenedVideo = codableEmulator.video.flatMap { $0 }
+        let uint32Video = flattenedVideo.map { UInt32($0) }
+        withUnsafeMutablePointer(to: &emulator.video) { video_ptr in
+            video_ptr.withMemoryRebound(to: UInt32.self, capacity: flattenedVideo.count) { dest_video_ptr in
+                
+                uint32Video.withUnsafeBufferPointer { src_video_ptr in
+                    memcpy(dest_video_ptr, src_video_ptr.baseAddress, flattenedVideo.count*MemoryLayout<UInt32>.size)
+                }
+            }
+            
+        }
+        
+        
+        emulator.pc = codableEmulator.pc
+        emulator.sp = codableEmulator.sp
+        emulator.delayTimer = codableEmulator.delayTimer
+        emulator.soundTimer = codableEmulator.soundTimer
+        emulator.index = codableEmulator.index
+        
+    }
+    
     public func loadURL(url: URL?) {
         if let url = url, let content = try? Data(contentsOf: url) {
             loadBytes(bytes: content)

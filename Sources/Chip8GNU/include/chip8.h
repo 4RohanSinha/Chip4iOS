@@ -51,6 +51,7 @@ typedef struct chip_8 {
 
 void ch_initialize(chip_8* proc);
 void ch_loadBytes(chip_8* proc, const char* instructions, size_t numBytes);
+void ch_loadMemory(chip_8* proc, const void* memory, size_t numBytes);
 void ch_cycle(chip_8* proc);
 void ch_keyDown(chip_8* proc, int key);
 void ch_keyUp(chip_8* proc, int key);

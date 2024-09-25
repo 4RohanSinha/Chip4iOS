@@ -94,6 +94,11 @@ void ch_loadBytes(chip_8* proc, const char* instructions, size_t numBytes) {
     rom_size = numBytes;
 }
 
+void ch_loadMemory(chip_8* proc, const void* memory, size_t numBytes) {
+    memcpy(proc->memory, memory, numBytes);
+    rom_size = numBytes;
+}
+
 void ch_cycle(chip_8* proc) {
     proc->opcode = (proc->memory[proc->pc] << 8u) | (proc->memory[proc->pc + 1]);
     proc->pc += 2;
